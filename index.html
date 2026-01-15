@@ -1,0 +1,1190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>金点网络-公共图片托管平台 / Public Image Hosting Platform</title>
+  <style>
+    :root{
+      color-scheme: dark;
+      --bg1:#0a1229;
+      --bg2:#1e3a8a;
+      --card: rgba(255,255,255,.08);
+      --border: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --accent: #3b82f6;
+      --hover: rgba(59,130,246,.2);
+      --selected: rgba(59,130,246,.3);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
+                   "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      background:
+        radial-gradient(1200px 700px at 20% 15%, rgba(59,130,246,.30), transparent 60%),
+        radial-gradient(1000px 600px at 85% 80%, rgba(30,58,138,.40), transparent 55%),
+        linear-gradient(135deg, var(--bg1), #0b1636 35%, var(--bg2));
+      color:var(--text);
+      overflow:hidden;
+    }
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.06) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(circle at 50% 35%, black 0%, transparent 65%);
+      pointer-events:none;
+      opacity:.9;
+    }
+
+    /* Layout */
+    .container {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 300px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(14px);
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      padding: 16px 20px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+    }
+
+    /* Directory Tree */
+    .directory-tree {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      margin: 1px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 13px;
+      position: relative;
+      min-height: 24px;
+    }
+
+    .tree-item:hover {
+      background: var(--hover);
+    }
+
+    .tree-item.selected {
+      background: var(--selected);
+      color: var(--accent);
+    }
+
+    .tree-item.selected::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent);
+      border-radius: 0 2px 2px 0;
+    }
+
+    .tree-expander {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--muted);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .tree-expander::before {
+      content: "▶";
+      transition: transform 0.2s ease;
+    }
+
+    .tree-item.expanded .tree-expander::before {
+      transform: rotate(90deg);
+    }
+
+    .tree-item.no-children .tree-expander {
+      opacity: 0.3;
+    }
+
+    .tree-icon {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .tree-icon.folder::before {
+      content: "📁";
+    }
+
+    .tree-icon.file::before {
+      content: "📄";
+    }
+
+    .tree-icon.image::before {
+      content: "🖼️";
+    }
+
+    .tree-children {
+      margin-left: 0;
+      padding-left: 20px;
+      display: none;
+      position: relative;
+    }
+
+    .tree-children::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+
+    .tree-children.expanded {
+      display: block;
+    }
+
+    .tree-item.level-0 {
+      margin-left: 0;
+    }
+
+    .tree-item.level-1 {
+      margin-left: 0;
+    }
+
+    .tree-item.level-2 {
+      margin-left: 0;
+    }
+
+    /* Connection lines for tree structure */
+    .tree-item::after {
+      content: "";
+      position: absolute;
+      left: -12px;
+      top: 50%;
+      width: 12px;
+      height: 1px;
+      background: var(--border);
+      display: none;
+    }
+
+    .tree-children .tree-item::after {
+      display: block;
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    /* View Modes */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      background: rgba(255,255,255,.06);
+      border-radius: 6px;
+      padding: 2px;
+    }
+
+    .view-btn {
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 13px;
+    }
+
+    .view-btn.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      background: var(--hover);
+      border-color: var(--accent);
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    /* List View */
+    .list-view {
+      display: none;
+    }
+
+    .list-view.active {
+      display: block;
+    }
+
+    .image-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .image-item:hover {
+      background: var(--hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+
+    .image-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+    }
+
+    .file-thumb {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border-radius: 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+
+    .image-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .image-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .image-meta {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .image-meta span {
+      white-space: nowrap;
+    }
+
+    .image-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Grid View */
+    .grid-view {
+      display: none;
+    }
+
+    .grid-view.active {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .grid-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .grid-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      border-color: var(--accent);
+    }
+
+    .grid-image {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+
+    .grid-file-icon {
+      width: 100%;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .grid-info {
+      padding: 12px;
+    }
+
+    .grid-name {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .grid-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      max-width: 90vw;
+      max-height: 90vh;
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .modal-image {
+      max-width: 100%;
+      max-height: 80vh;
+      display: block;
+    }
+
+    .modal-actions {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top: 2px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Badge */
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 12px;
+      border-radius:999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      font-size:13px;
+      letter-spacing:.3px;
+    }
+    .dot{
+      width:9px; height:9px; border-radius:50%;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(59,130,246,.85);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="header">
+        <div class="badge"><span class="dot"></span>目录树 / Directory Tree</div>
+      </div>
+      <div class="directory-tree" id="directory-tree">
+        <div class="loading">
+          <div class="spinner"></div>
+          加载中...
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <h1 style="margin:0; font-size:24px;">金点网络-公共图片托管平台</h1>
+        <div style="font-size:14px; color:var(--muted); margin-top:4px;">
+          Public Image Hosting Platform
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="view-toggle">
+          <button class="view-btn active" data-view="grid" id="grid-view-btn">
+            🖼️ 预览
+          </button>
+          <button class="view-btn" data-view="list" id="list-view-btn">
+            📋 列表
+          </button>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="btn" id="export-btn">
+          📊 导出CSV
+        </button>
+        <button class="btn" id="refresh-btn">
+          🔄 刷新
+        </button>
+      </div>
+
+      <div class="content-area">
+        <div class="grid-view active" id="grid-view"></div>
+        <div class="list-view" id="list-view"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Preview Modal -->
+  <div class="modal" id="image-modal">
+    <div class="modal-content">
+      <img id="modal-image" class="modal-image" src="" alt="">
+      <div class="modal-actions">
+        <div id="modal-info"></div>
+        <div>
+          <button class="btn" id="copy-link-btn">📋 复制链接</button>
+          <button class="btn" id="close-modal-btn">✕ 关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let directoryData = null;
+    let currentPath = "images/";
+    let currentView = "grid";
+    let isLoading = true;
+
+    // DOM elements
+    const directoryTree = document.getElementById('directory-tree');
+    const gridView = document.getElementById('grid-view');
+    const listView = document.getElementById('list-view');
+    const gridViewBtn = document.getElementById('grid-view-btn');
+    const listViewBtn = document.getElementById('list-view-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const imageModal = document.getElementById('image-modal');
+    const modalImage = document.getElementById('modal-image');
+    const modalInfo = document.getElementById('modal-info');
+    const copyLinkBtn = document.getElementById('copy-link-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+    // Load directory data
+    async function loadDirectoryData() {
+      try {
+        const response = await fetch('./directory-data.json');
+        if (!response.ok) {
+          throw new Error('Failed to load directory data');
+        }
+        directoryData = await response.json();
+        isLoading = false;
+        renderDirectoryTree();
+        setInitialSelection();
+        renderImages();
+      } catch (error) {
+        console.error('Error loading directory data:', error);
+        directoryTree.innerHTML = '<div style="color: var(--muted); padding: 20px; text-align: center;">加载目录数据失败<br>请确保已运行目录扫描脚本</div>';
+        isLoading = false;
+      }
+    }
+
+    // Generate colorful placeholder for images
+    function generateImagePlaceholder(filename, width, height) {
+      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#FF9FF3', '#54A0FF'];
+      const color = colors[Math.abs(filename.split('').reduce((a,b) => a + b.charCodeAt(0), 0)) % colors.length];
+
+      // Create a more detailed SVG placeholder
+      const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${adjustColor(color, -30)};stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect width="${width}" height="${height}" fill="url(#grad)"/>
+        <circle cx="${width/2}" cy="${height/2 - 15}" r="20" fill="white" opacity="0.8"/>
+        <rect x="${width/2 - 12}" y="${height/2 + 5}" width="24" height="3" fill="white" opacity="0.8" rx="1"/>
+        <rect x="${width/2 - 8}" y="${height/2 + 10}" width="16" height="3" fill="white" opacity="0.6" rx="1"/>
+        <text x="${width/2}" y="${height - 15}" text-anchor="middle" fill="white" font-size="10" opacity="0.9">${filename}</text>
+      </svg>`;
+
+      return 'data:image/svg+xml;base64,' + btoa(svg);
+    }
+
+    // Helper function to adjust color brightness
+    function adjustColor(color, amount) {
+      const usePound = color[0] === '#';
+      const col = usePound ? color.slice(1) : color;
+
+      const num = parseInt(col, 16);
+      let r = (num >> 16) + amount;
+      let g = (num >> 8 & 0x00FF) + amount;
+      let b = (num & 0x0000FF) + amount;
+
+      r = r > 255 ? 255 : r < 0 ? 0 : r;
+      g = g > 255 ? 255 : g < 0 ? 0 : g;
+      b = b > 255 ? 255 : b < 0 ? 0 : b;
+
+      return (usePound ? '#' : '') + (r << 16 | g << 8 | b).toString(16);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      setupEventListeners();
+      loadDirectoryData();
+    });
+
+    // Set initial folder selection after data loads
+    function setInitialSelection() {
+      if (directoryData && directoryData['images/']) {
+        const imagesFolder = document.querySelector('[data-path="images/"]');
+        if (imagesFolder) {
+          imagesFolder.classList.add('selected');
+          // Set initial path and render images
+          currentPath = 'images/';
+          renderImages();
+          // Auto-expand the images folder
+          const children = imagesFolder.querySelector('.tree-children');
+          if (children) {
+            children.classList.add('expanded');
+            imagesFolder.classList.add('expanded');
+          }
+        }
+      }
+    }
+
+    function setupEventListeners() {
+      // View toggle
+      gridViewBtn.addEventListener('click', () => switchView('grid'));
+      listViewBtn.addEventListener('click', () => switchView('list'));
+
+      // Export
+      exportBtn.addEventListener('click', exportToCSV);
+
+      // Refresh
+      refreshBtn.addEventListener('click', () => {
+        loadDirectoryData();
+      });
+
+      // Modal
+      closeModalBtn.addEventListener('click', () => imageModal.classList.remove('active'));
+      copyLinkBtn.addEventListener('click', copyImageLink);
+    }
+
+    function renderDirectoryTree() {
+      if (isLoading) {
+        directoryTree.innerHTML = '<div class="loading"><div class="spinner"></div>加载目录结构...</div>';
+        return;
+      }
+
+      if (!directoryData) {
+        directoryTree.innerHTML = '<div style="color: var(--muted); padding: 20px; text-align: center;">目录数据未加载</div>';
+        return;
+      }
+
+      directoryTree.innerHTML = '';
+      renderTreeItem(directoryData, '', directoryTree, true);
+    }
+
+    function renderTreeItem(data, path, parent, isRoot = false, level = 0) {
+      for (const [name, item] of Object.entries(data)) {
+        const itemPath = isRoot ? name : path + name;
+        const itemElement = document.createElement('div');
+        itemElement.className = `tree-item level-${level}`;
+        itemElement.dataset.path = itemPath;
+
+        const hasChildren = item.type === 'folder' && item.children && Object.keys(item.children).length > 0;
+
+        if (item.type === 'folder') {
+          itemElement.innerHTML = `
+            <div class="tree-expander ${hasChildren ? '' : 'no-children'}"></div>
+            <div class="tree-icon folder"></div>
+            <span>${name.replace('/', '')}</span>
+          `;
+          itemElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectFolder(itemElement, itemPath);
+          });
+        } else if (item.type === 'image') {
+          itemElement.innerHTML = `
+            <div class="tree-expander no-children"></div>
+            <div class="tree-icon image"></div>
+            <span>${name}</span>
+          `;
+          itemElement.addEventListener('click', () => selectImage(itemPath, item));
+        } else {
+          itemElement.innerHTML = `
+            <div class="tree-expander no-children"></div>
+            <div class="tree-icon file"></div>
+            <span>${name}</span>
+          `;
+        }
+
+        if (item.type === 'folder') {
+          const childrenContainer = document.createElement('div');
+          childrenContainer.className = 'tree-children';
+          if (hasChildren) {
+            renderTreeItem(item.children, itemPath + '/', childrenContainer, false, level + 1);
+          }
+          itemElement.appendChild(childrenContainer);
+        }
+
+        parent.appendChild(itemElement);
+      }
+    }
+
+    function selectFolder(element, path) {
+      // Remove previous selection
+      document.querySelectorAll('.tree-item.selected').forEach(el => el.classList.remove('selected'));
+
+      // Add selection to current folder
+      element.classList.add('selected');
+
+      // Set current path and render images
+      currentPath = path;
+      renderImages();
+
+      // Toggle expanded state
+      const children = element.querySelector('.tree-children');
+      const isExpanded = children.classList.contains('expanded');
+
+      if (isExpanded) {
+        children.classList.remove('expanded');
+        element.classList.remove('expanded');
+      } else {
+        children.classList.add('expanded');
+        element.classList.add('expanded');
+      }
+    }
+
+    function selectImage(path, item) {
+      // Remove previous selection
+      document.querySelectorAll('.tree-item.selected').forEach(el => el.classList.remove('selected'));
+
+      // Add selection to clicked item
+      event.currentTarget.classList.add('selected');
+
+      // Show image preview
+      showImageModal(path, item);
+    }
+
+    function renderImages() {
+      if (isLoading || !directoryData) {
+        const loadingHtml = '<div class="loading"><div class="spinner"></div>加载文件...</div>';
+        gridView.innerHTML = loadingHtml;
+        listView.innerHTML = loadingHtml;
+        return;
+      }
+
+      const folderData = getFolderData(currentPath);
+      if (!folderData || folderData.type !== 'folder') {
+        gridView.innerHTML = '<div style="color: var(--muted); padding: 40px; text-align: center;">此目录为空</div>';
+        listView.innerHTML = '<div style="color: var(--muted); padding: 40px; text-align: center;">此目录为空</div>';
+        return;
+      }
+
+      const allFiles = Object.entries(folderData.children);
+
+      // Grid view
+      gridView.innerHTML = '';
+      allFiles.forEach(([name, item]) => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'grid-item';
+
+        if (item.type === 'image') {
+          const imageUrl = `./${item.url}`;
+          const placeholderSvg = generateImagePlaceholder(name, 200, 150);
+          itemElement.innerHTML = `
+            <img class="grid-image" src="${imageUrl}" alt="${name}" onerror="this.src='${placeholderSvg}'">
+            <div class="grid-info">
+              <div class="grid-name">${name}</div>
+              <div class="grid-meta">${item.size} · ${item.dimensions}</div>
+            </div>
+          `;
+          itemElement.addEventListener('click', () => showImageModal(currentPath + name, item));
+        } else {
+          // 非图片文件显示文件图标
+          const fileIcon = getFileIcon(name);
+          const fileExt = name.split('.').pop().toLowerCase();
+          const canPreview = ['txt', 'md', 'json', 'js', 'css', 'html', 'xml'].includes(fileExt);
+
+          itemElement.innerHTML = `
+            <div class="grid-file-icon">${fileIcon}</div>
+            <div class="grid-info">
+              <div class="grid-name">${name}</div>
+              <div class="grid-meta">${item.size || '文件'}
+                ${canPreview ? '<br><small style="color: #007acc;">可预览</small>' : ''}
+              </div>
+            </div>
+          `;
+          itemElement.addEventListener('click', () => showFileInfo(currentPath + name, item));
+        }
+
+        gridView.appendChild(itemElement);
+      });
+
+      // List view
+      listView.innerHTML = '';
+      allFiles.forEach(([name, item]) => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'image-item';
+
+        if (item.type === 'image') {
+          const imageUrl = `./${item.url}`;
+          const placeholderSvg = generateImagePlaceholder(name, 60, 60);
+          itemElement.innerHTML = `
+            <img class="image-thumb" src="${imageUrl}" alt="${name}" onerror="this.src='${placeholderSvg}'">
+            <div class="image-info">
+              <div class="image-name">${name}</div>
+              <div class="image-meta">
+                <span>大小: ${item.size}</span>
+                <span>尺寸: ${item.dimensions}</span>
+                <span>路径: ${currentPath + name}</span>
+              </div>
+            </div>
+            <div class="image-actions">
+              <button class="btn" onclick="copyImageLink('${currentPath + name}')">📋 复制链接</button>
+            </div>
+          `;
+          itemElement.addEventListener('click', () => showImageModal(currentPath + name, item));
+        } else {
+          // 非图片文件显示文件图标
+          const fileIcon = getFileIcon(name);
+          const fileExt = name.split('.').pop().toLowerCase();
+          const canPreview = ['txt', 'md', 'json', 'js', 'css', 'html', 'xml'].includes(fileExt);
+
+          itemElement.innerHTML = `
+            <div class="file-thumb">${fileIcon}</div>
+            <div class="image-info">
+              <div class="image-name">${name}</div>
+              <div class="image-meta">
+                <span>大小: ${item.size || '未知'}</span>
+                <span>类型: ${getFileType(name)}</span>
+                <span>路径: ${currentPath + name}</span>
+              </div>
+            </div>
+            <div class="image-actions">
+              ${canPreview ? `<button class="btn" onclick="showFileContent('${currentPath + name}', ${JSON.stringify(item).replace(/"/g, '&quot;')})">👁️ 查看内容</button>` : ''}
+              <button class="btn" onclick="copyFileLink('${currentPath + name}')">📋 复制链接</button>
+            </div>
+          `;
+          itemElement.addEventListener('click', () => showFileInfo(currentPath + name, item));
+        }
+
+        listView.appendChild(itemElement);
+      });
+    }
+
+    function getFileIcon(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      const iconMap = {
+        'txt': '📄',
+        'md': '📝',
+        'pdf': '📕',
+        'doc': '📄',
+        'docx': '📄',
+        'xls': '📊',
+        'xlsx': '📊',
+        'ppt': '📽️',
+        'pptx': '📽️',
+        'zip': '📦',
+        'rar': '📦',
+        'json': '⚙️',
+        'js': '💻',
+        'css': '🎨',
+        'html': '🌐',
+        'xml': '📋'
+      };
+      return iconMap[ext] || '📄';
+    }
+
+    function getFileType(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      const typeMap = {
+        'txt': '文本文件',
+        'md': 'Markdown文档',
+        'pdf': 'PDF文档',
+        'doc': 'Word文档',
+        'docx': 'Word文档',
+        'xls': 'Excel表格',
+        'xlsx': 'Excel表格',
+        'ppt': 'PowerPoint演示',
+        'pptx': 'PowerPoint演示',
+        'zip': '压缩文件',
+        'rar': '压缩文件',
+        'json': '配置文件',
+        'js': 'JavaScript脚本',
+        'css': '样式表',
+        'html': 'HTML页面',
+        'xml': 'XML文档'
+      };
+      return typeMap[ext] || '未知文件类型';
+    }
+
+    async function showFileInfo(path, item) {
+      const filename = path.split('/').pop();
+      const fileType = getFileType(filename);
+      const fileIcon = getFileIcon(filename);
+
+      const modal = document.getElementById('image-modal');
+      const modalImage = document.getElementById('modal-image');
+      const modalInfo = document.getElementById('modal-info');
+
+      // 检查是否是可以预览的文件类型
+      const previewableTypes = ['txt', 'md', 'json', 'js', 'css', 'html', 'xml'];
+      const fileExt = filename.split('.').pop().toLowerCase();
+      const canPreview = previewableTypes.includes(fileExt);
+
+      if (canPreview) {
+        try {
+          // 尝试加载文件内容
+          const response = await fetch(`./${item.url}`);
+          if (response.ok) {
+            const content = await response.text();
+            showFileContentModal(filename, fileType, content, path, item);
+            return;
+          }
+        } catch (error) {
+          console.log('无法加载文件内容:', error);
+        }
+      }
+
+      // 显示文件信息模态框
+      modalImage.src = 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+          <rect width="400" height="300" fill="#f0f0f0"/>
+          <text x="200" y="120" text-anchor="middle" font-size="48">${fileIcon}</text>
+          <text x="200" y="180" text-anchor="middle" font-size="16" fill="#666">${fileType}</text>
+          <text x="200" y="200" text-anchor="middle" font-size="12" fill="#999">${filename}</text>
+          ${canPreview ? '<text x="200" y="240" text-anchor="middle" font-size="12" fill="#007acc">点击查看内容</text>' : ''}
+        </svg>
+      `);
+
+      modalInfo.innerHTML = `
+        <strong>${filename}</strong><br>
+        类型: ${fileType}<br>
+        大小: ${item.size || '未知'}<br>
+        路径: ${path}
+        ${canPreview ? '<br><small style="color: #007acc;">此文件支持内容预览</small>' : ''}
+      `;
+
+      modal.classList.add('active');
+    }
+
+    function showFileContentModal(filename, fileType, content, path, item) {
+      const modal = document.getElementById('image-modal');
+      const modalImage = document.getElementById('modal-image');
+      const modalInfo = document.getElementById('modal-info');
+
+      // 创建文件内容预览
+      const maxLength = 5000; // 限制预览长度
+      const truncated = content.length > maxLength;
+      const displayContent = truncated ? content.substring(0, maxLength) + '\n\n... (内容过长，已截断)' : content;
+
+      // 根据文件类型设置语法高亮类
+      const fileExt = filename.split('.').pop().toLowerCase();
+      let languageClass = '';
+      switch (fileExt) {
+        case 'js': languageClass = 'language-javascript'; break;
+        case 'json': languageClass = 'language-json'; break;
+        case 'css': languageClass = 'language-css'; break;
+        case 'html': languageClass = 'language-html'; break;
+        case 'xml': languageClass = 'language-xml'; break;
+        case 'md': languageClass = 'language-markdown'; break;
+        default: languageClass = 'language-plaintext';
+      }
+
+      modalImage.style.display = 'none';
+
+      // 创建内容容器
+      const contentContainer = document.createElement('div');
+      contentContainer.style.cssText = `
+        width: 100%;
+        height: 400px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 16px;
+        overflow-y: auto;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      `;
+      contentContainer.textContent = displayContent;
+
+      // 替换模态框内容
+      const modalContent = modal.querySelector('.modal-content');
+      modalContent.insertBefore(contentContainer, modalInfo);
+
+      modalInfo.innerHTML = `
+        <strong>${filename}</strong><br>
+        类型: ${fileType}<br>
+        大小: ${item.size || '未知'}<br>
+        路径: ${path}
+        ${truncated ? '<br><small style="color: #856404;">文件内容过长，仅显示前5000字符</small>' : ''}
+      `;
+
+      modal.classList.add('active');
+
+      // 清理函数
+      const closeHandler = () => {
+        modalContent.removeChild(contentContainer);
+        modalImage.style.display = 'block';
+        modal.removeEventListener('click', closeHandler);
+      };
+
+      // 点击关闭按钮时清理
+      document.getElementById('close-modal-btn').addEventListener('click', closeHandler, { once: true });
+    }
+
+    function getFolderData(path) {
+      if (!directoryData) return null;
+
+      // Handle root path
+      if (!path || path === '') {
+        return { type: 'folder', children: directoryData };
+      }
+
+      // Split path into parts and navigate through nested structure
+      const parts = path.split('/').filter(p => p);
+      let current = directoryData;
+
+      for (const part of parts) {
+        const folderKey = part + '/';
+        if (current[folderKey] && current[folderKey].type === 'folder') {
+          current = current[folderKey].children;
+        } else {
+          return null;
+        }
+      }
+
+      return { type: 'folder', children: current };
+    }
+
+    function switchView(view) {
+      currentView = view;
+
+      // Update buttons
+      gridViewBtn.classList.toggle('active', view === 'grid');
+      listViewBtn.classList.toggle('active', view === 'list');
+
+      // Update views
+      gridView.classList.toggle('active', view === 'grid');
+      listView.classList.toggle('active', view === 'list');
+    }
+
+    function showImageModal(path, item) {
+      const imageUrl = `./${item.url}`;
+      const filename = path.split('/').pop();
+      const placeholderSvg = generateImagePlaceholder(filename, 800, 600);
+
+      modalImage.src = imageUrl;
+      modalImage.onerror = function() {
+        this.src = placeholderSvg;
+      };
+      modalInfo.innerHTML = `
+        <strong>${filename}</strong> |
+        大小: ${item.size} |
+        尺寸: ${item.dimensions}
+      `;
+      imageModal.classList.add('active');
+    }
+
+    function copyImageLink(path) {
+      copyFileLink(path);
+    }
+
+    function copyFileLink(path) {
+      let linkToCopy = '';
+
+      if (path) {
+        // 从path获取对应的项目数据
+        const parts = path.split('/').filter(p => p);
+        let current = directoryData;
+        let item = null;
+
+        for (const part of parts) {
+          if (current && current[part]) {
+            if (current[part].type === 'folder') {
+              current = current[part].children;
+            } else {
+              item = current[part];
+            }
+          }
+        }
+
+        if (item && item.url) {
+          linkToCopy = window.location.origin + window.location.pathname.replace('index.html', '') + item.url;
+        } else {
+          linkToCopy = window.location.origin + window.location.pathname.replace('index.html', '') + path;
+        }
+      } else {
+        linkToCopy = modalImage.src;
+      }
+
+      navigator.clipboard.writeText(linkToCopy).then(() => {
+        alert('链接已复制到剪贴板！\n' + linkToCopy);
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动复制链接');
+      });
+    }
+
+    async function showFileContent(path, item) {
+      const filename = path.split('/').pop();
+      const fileType = getFileType(filename);
+
+      try {
+        const response = await fetch(`./${item.url}`);
+        if (response.ok) {
+          const content = await response.text();
+          showFileContentModal(filename, fileType, content, path, item);
+        } else {
+          alert('无法加载文件内容');
+        }
+      } catch (error) {
+        console.error('加载文件内容失败:', error);
+        alert('加载文件内容失败');
+      }
+    }
+
+    function exportToCSV() {
+      const folderData = getFolderData(currentPath);
+      if (!folderData || folderData.type !== 'folder') return;
+
+      const allFiles = Object.entries(folderData.children);
+
+      let csvContent = "名称,路径,类型,大小,尺寸/格式\n";
+      allFiles.forEach(([name, item]) => {
+        const fileType = item.type === 'image' ? '图片' : getFileType(name);
+        const sizeOrFormat = item.type === 'image' ? item.dimensions : item.size;
+        csvContent += `"${name}","${currentPath + name}","${fileType}","${item.size}","${sizeOrFormat}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+
+      // 使用当前目录名称作为文件名
+      const folderName = currentPath.replace(/\/$/, '').split('/').pop() || 'root';
+      link.download = `${folderName}_files.csv`;
+      link.click();
+    }
+  </script>
+</body>
+</html>
