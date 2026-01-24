@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>金点网络-公共图片托管平台 / Public Image Hosting Platform</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>中电数媒-公共图片 / Public Image Hosting Platform</title>
   <style>
     :root{
       color-scheme: dark;
@@ -58,6 +61,35 @@
       backdrop-filter: blur(14px);
     }
 
+    @media (max-width: 820px) {
+      body { overflow: auto; }
+      .container { height: 100vh; }
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 50;
+        transform: translateX(-105%);
+        transition: transform .22s ease;
+        width: min(86vw, 360px);
+        box-shadow: 0 20px 60px rgba(0,0,0,.45);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.45);
+        z-index: 40;
+        display: none;
+      }
+      .sidebar-backdrop.open { display: block; }
+      .main-content { width: 100%; }
+      .toolbar { gap: 10px; }
+      #current-path { display: none; }
+      .content-area { padding: 10px; }
+    }
+
     .main-content {
       flex: 1;
       display: flex;
@@ -91,29 +123,35 @@
     }
 
     .tree-item {
+      display: block;
+      margin: 1px 0;
+      border-radius: 4px;
+      font-size: 13px;
+      position: relative;
+    }
+
+    .tree-row {
       display: flex;
       align-items: center;
       gap: 6px;
       padding: 4px 8px;
-      margin: 1px 0;
       border-radius: 4px;
       cursor: pointer;
       transition: all 0.2s;
-      font-size: 13px;
-      position: relative;
       min-height: 24px;
+      position: relative;
     }
 
-    .tree-item:hover {
+    .tree-item:hover .tree-row {
       background: var(--hover);
     }
 
-    .tree-item.selected {
+    .tree-item.selected .tree-row {
       background: var(--selected);
       color: var(--accent);
     }
 
-    .tree-item.selected::before {
+    .tree-item.selected .tree-row::before {
       content: "";
       position: absolute;
       left: 0;
@@ -205,7 +243,7 @@
     }
 
     /* Connection lines for tree structure */
-    .tree-item::after {
+    .tree-row::after {
       content: "";
       position: absolute;
       left: -12px;
@@ -216,7 +254,7 @@
       display: none;
     }
 
-    .tree-children .tree-item::after {
+    .tree-children .tree-row::after {
       display: block;
     }
 
@@ -250,6 +288,11 @@
     .view-btn.active {
       background: var(--accent);
       color: white;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     /* Buttons */
@@ -434,25 +477,203 @@
     }
 
     .modal-content {
-      max-width: 90vw;
-      max-height: 90vh;
+      max-width: 95vw;
+      max-height: 95vh;
       background: var(--card);
       border-radius: 12px;
       border: 1px solid var(--border);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .modal-image-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      min-height: 0;
+      position: relative;
+      padding: 16px;
     }
 
     .modal-image {
       max-width: 100%;
-      max-height: 80vh;
+      max-height: 100%;
       display: block;
+      object-fit: contain;
     }
 
     .modal-actions {
       padding: 16px;
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
+      flex-shrink: 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 10;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
       align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      z-index: 20;
+      transition: all 0.2s;
+    }
+
+    .modal-close-btn:hover {
+      background: rgba(0,0,0,0.8);
+      transform: scale(1.1);
+    }
+
+    .modal-navigation {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0,0,0,0.7);
+      padding: 8px 16px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      z-index: 15;
+      min-width: 200px;
+    }
+
+    .modal-nav-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .modal-nav-btn:hover:not(:disabled) {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .modal-nav-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .modal-nav-counter {
+      color: white;
+      font-size: 12px;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* Responsive modal */
+    @media (max-width: 768px) {
+      .modal-content {
+        max-width: 98vw;
+        max-height: 98vh;
+        margin: 10px;
+      }
+
+      .modal-image-container {
+        padding: 12px;
+      }
+
+      .modal-actions {
+        padding: 12px;
+        font-size: 14px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .modal-close-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+        top: 4px;
+        right: 4px;
+      }
+
+      .modal-navigation {
+        bottom: 12px;
+        padding: 6px 12px;
+        gap: 8px;
+        min-width: 180px;
+      }
+
+      .modal-nav-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+
+      .modal-nav-counter {
+        font-size: 11px;
+        min-width: 50px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .modal-content {
+        max-width: 100vw;
+        max-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+      }
+
+      .modal-image-container {
+        padding: 8px;
+      }
+
+      .modal-actions {
+        padding: 8px;
+        font-size: 12px;
+        gap: 8px;
+      }
+
+      .modal-close-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+        top: 2px;
+        right: 2px;
+      }
+
+      .modal-navigation {
+        bottom: 8px;
+        padding: 4px 8px;
+        gap: 6px;
+        min-width: 160px;
+      }
+
+      .modal-nav-btn {
+        padding: 3px 6px;
+        font-size: 10px;
+      }
+
+      .modal-nav-counter {
+        font-size: 10px;
+        min-width: 40px;
+      }
     }
 
     /* Loading */
@@ -501,10 +722,14 @@
 </head>
 <body>
   <div class="container">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="header">
         <div class="badge"><span class="dot"></span>目录树 / Directory Tree</div>
+        <div style="margin-top: 10px;">
+          <input id="tree-search" type="text" placeholder="搜索文件夹..." style="width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text); outline: none;" />
+        </div>
       </div>
       <div class="directory-tree" id="directory-tree">
         <div class="loading">
@@ -524,6 +749,21 @@
       </div>
 
       <div class="toolbar">
+        <div id="current-path" style="flex: 1; min-width: 120px; color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+        <button class="btn" id="sidebar-toggle" style="display:none;">☰ 目录</button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input id="file-search" type="text" placeholder="搜索文件名..." style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text); outline: none; width: 150px;">
+          <select id="sort-select" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text); outline: none;">
+            <option value="name">文件名</option>
+            <option value="original_name">原始文件名</option>
+            <option value="upload_time">上传时间</option>
+            <option value="size">文件大小</option>
+          </select>
+          <select id="sort-order" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text); outline: none;">
+            <option value="asc">升序</option>
+            <option value="desc">降序</option>
+          </select>
+        </div>
         <div class="view-toggle">
           <button class="view-btn active" data-view="grid" id="grid-view-btn">
             🖼️ 预览
@@ -533,6 +773,12 @@
           </button>
         </div>
         <div style="flex:1;"></div>
+        <select id="page-size-select" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text);">
+          <option value="20">20条/页</option>
+          <option value="50" selected>50条/页</option>
+          <option value="100">100条/页</option>
+          <option value="200">200条/页</option>
+        </select>
         <button class="btn" id="export-btn">
           📊 导出CSV
         </button>
@@ -544,6 +790,7 @@
       <div class="content-area">
         <div class="grid-view active" id="grid-view"></div>
         <div class="list-view" id="list-view"></div>
+        <div id="pagination-container"></div>
       </div>
     </div>
   </div>
@@ -551,12 +798,21 @@
   <!-- Image Preview Modal -->
   <div class="modal" id="image-modal">
     <div class="modal-content">
-      <img id="modal-image" class="modal-image" src="" alt="">
+      <button class="modal-close-btn" onclick="closeModal()">✕</button>
+      <div class="modal-image-container">
+        <img id="modal-image" class="modal-image" src="" alt="">
+        <div class="modal-navigation" id="modal-navigation">
+          <button class="modal-nav-btn" onclick="navigateModal(-1)">上一张</button>
+          <span class="modal-nav-counter" id="modal-counter">1 / 10</span>
+          <button class="modal-nav-btn" onclick="navigateModal(1)">下一张</button>
+        </div>
+      </div>
       <div class="modal-actions">
         <div id="modal-info"></div>
         <div>
-          <button class="btn" id="copy-link-btn">📋 复制链接</button>
-          <button class="btn" id="close-modal-btn">✕ 关闭</button>
+          <button class="btn" id="copy-link-btn">📋 复制</button>
+          <button class="btn" id="open-link-btn">🔗 打开</button>
+          <button class="btn" id="download-btn">📥 下载</button>
         </div>
       </div>
     </div>
@@ -576,27 +832,381 @@
     const listViewBtn = document.getElementById('list-view-btn');
     const exportBtn = document.getElementById('export-btn');
     const refreshBtn = document.getElementById('refresh-btn');
+    const treeSearchInput = document.getElementById('tree-search');
+    const fileSearchInput = document.getElementById('file-search');
+    const currentPathEl = document.getElementById('current-path');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    const sidebarEl = document.querySelector('.sidebar');
     const imageModal = document.getElementById('image-modal');
     const modalImage = document.getElementById('modal-image');
     const modalInfo = document.getElementById('modal-info');
     const copyLinkBtn = document.getElementById('copy-link-btn');
     const closeModalBtn = document.getElementById('close-modal-btn');
+    const openLinkBtn = document.getElementById('open-link-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const sortSelect = document.getElementById('sort-select');
+    const sortOrderSelect = document.getElementById('sort-order');
+    const pageSizeSelect = document.getElementById('page-size-select');
+
+    let currentModalUrl = '';
+    let currentModalCleanup = null;
+
+    const imageDimensionCache = new Map();
+
+    let githubConfig = null;
+    let currentPage = 1;
+    let itemsPerPage = 50;
+
+    function normalizePath(p) {
+      if (typeof p !== 'string') return '';
+      return p.replace(/\\/g, '/').replace(/\/+/g, '/');
+    }
+
+    function joinPath(a, b) {
+      const left = normalizePath(a || '');
+      const right = normalizePath(b || '');
+      if (!left) return right;
+      if (!right) return left;
+      return normalizePath(left.replace(/\/+$/, '') + '/' + right.replace(/^\/+/, ''));
+    }
+
+    function formatDimensions(width, height) {
+      const w = Number(width);
+      const h = Number(height);
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return '未知';
+      return `${w}×${h}`;
+    }
+
+    function applyImageDimensionsFromElement(imgEl, item, metaEl) {
+      if (!imgEl || !item) return;
+      const url = resolveItemUrl(item);
+      if (!url) return;
+
+      const cached = imageDimensionCache.get(url);
+      if (cached) {
+        item.dimensions = cached;
+        if (metaEl) metaEl.textContent = cached;
+        return;
+      }
+
+      const update = () => {
+        const dim = formatDimensions(imgEl.naturalWidth, imgEl.naturalHeight);
+        if (dim === '未知') return;
+        imageDimensionCache.set(url, dim);
+        item.dimensions = dim;
+        if (metaEl) metaEl.textContent = dim;
+      };
+
+      if (imgEl.complete && imgEl.naturalWidth) {
+        update();
+        return;
+      }
+
+      imgEl.addEventListener('load', update, { once: true });
+    }
+
+    function getGithubConfigFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const owner = params.get('owner');
+      const repo = params.get('repo');
+      if (!owner || !repo) return null;
+
+      const ref = params.get('ref') || 'main';
+      const root = params.get('root') || '';
+      const rootNormalized = root ? root.replace(/^\/+/, '').replace(/\/+$/, '') + '/' : '';
+
+      const token = params.get('token') || '';
+
+      return { owner, repo, ref, root: rootNormalized, token };
+    }
+
+    function getDefaultGithubConfig() {
+      return { owner: 'jamingh', repo: 'pic', ref: 'main', root: '', token: '' };
+    }
+
+    function isDefaultRepo(config) {
+      const def = getDefaultGithubConfig();
+      return !!config && config.owner === def.owner && config.repo === def.repo;
+    }
+
+    function getSiteBaseUrl() {
+      // Works for both custom domain root (/) and GitHub Pages subpath (/pic/)
+      let basePath = window.location.pathname || '/';
+      basePath = basePath.replace(/index\.html$/i, '');
+      if (!basePath.endsWith('/')) basePath += '/';
+      return window.location.origin + basePath;
+    }
+
+    function getServerApiBaseFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const api = params.get('api');
+      return api || 'https://www.pipbest.com/cnpic/upload.php';
+    }
+
+    function formatBytes(bytes) {
+      if (typeof bytes !== 'number' || Number.isNaN(bytes)) return '未知';
+      if (bytes < 1024) return `${bytes}B`;
+      const kb = bytes / 1024;
+      if (kb < 1024) return `${kb.toFixed(1)}KB`;
+      const mb = kb / 1024;
+      if (mb < 1024) return `${mb.toFixed(1)}MB`;
+      const gb = mb / 1024;
+      return `${gb.toFixed(2)}GB`;
+    }
+
+    function isAbsoluteUrl(url) {
+      return typeof url === 'string' && /^https?:\/\//i.test(url);
+    }
+
+    function resolveItemUrl(item) {
+      if (!item || !item.url) return '';
+      return isAbsoluteUrl(item.url) ? item.url : `./${item.url}`;
+    }
+
+    function buildDirectoryDataFromServerFileList(files, config, basePath) {
+      const output = {};
+      const list = Array.isArray(files) ? files : [];
+
+      const base = (basePath || '').replace(/^\/+/, '').replace(/\/+$/, '');
+      const baseWithSlash = base ? base + '/' : '';
+
+      function ensureFolder(parent, folderName) {
+        const key = folderName + '/';
+        if (!parent[key]) {
+          parent[key] = { type: 'folder', children: {} };
+        }
+        return parent[key].children;
+      }
+
+      for (const f of list) {
+        if (!f || typeof f.path !== 'string' || typeof f.name !== 'string') continue;
+        const fullPath = normalizePath(f.path);
+        if (baseWithSlash && !fullPath.startsWith(baseWithSlash)) continue;
+
+        const relativePath = baseWithSlash ? fullPath.slice(baseWithSlash.length) : fullPath;
+        const parts = relativePath.split('/').filter(Boolean);
+        if (parts.length === 0) continue;
+
+        let current = output;
+        for (let i = 0; i < parts.length - 1; i++) {
+          current = ensureFolder(current, parts[i]);
+        }
+
+        const name = parts[parts.length - 1];
+        const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+        const rawUrl = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.ref}/${fullPath}`;
+        const siteUrl = getSiteBaseUrl() + fullPath;
+        const resolvedUrl = isDefaultRepo(config) ? siteUrl : rawUrl;
+        const sizeValue = typeof f.size === 'number' ? f.size : Number(f.size);
+        const sizeText = formatBytes(Number.isFinite(sizeValue) ? sizeValue : NaN);
+
+        if (isImage) {
+          current[name] = {
+            type: 'image',
+            size: sizeText,
+            dimensions: '未知',
+            path: relativePath,
+            url: resolvedUrl,
+            original_name: f.original_name || '',
+            upload_time: f.upload_time || ''
+          };
+        } else {
+          current[name] = {
+            type: 'file',
+            size: sizeText,
+            path: relativePath,
+            url: resolvedUrl,
+            original_name: f.original_name || '',
+            upload_time: f.upload_time || ''
+          };
+        }
+      }
+
+      return output;
+    }
+
+    async function loadDirectoryDataFromServerApi(config) {
+      const apiBase = getServerApiBaseFromUrl();
+      const params = new URLSearchParams();
+      params.set('action', 'list');
+      params.set('owner', config.owner);
+      params.set('repo', config.repo);
+      params.set('ref', config.ref);
+
+      const basePath = (config.root || '').replace(/^\/+/, '').replace(/\/+$/, '');
+      if (basePath) {
+        params.set('path', basePath);
+      }
+
+      if (config.token) {
+        params.set('token', config.token);
+      }
+
+      const url = `${apiBase}?${params.toString()}`;
+      console.log('Fetching server list API:', url);
+      const res = await fetch(url);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server list API failed: ${res.status} ${text}`);
+      }
+      const json = await res.json();
+      if (!json || json.success !== true || !Array.isArray(json.files)) {
+        throw new Error('Server list API returned invalid payload');
+      }
+      console.log('Server list API returned', json.files.length, 'files');
+      return buildDirectoryDataFromServerFileList(json.files, config, basePath);
+    }
+
+    async function loadDirectoryDataFromGitHub(config) {
+      const headers = {
+        'Accept': 'application/vnd.github+json'
+      };
+      if (config.token) {
+        headers['Authorization'] = `Bearer ${config.token}`;
+      }
+
+      console.log('Loading GitHub data for:', config.owner, config.repo, config.ref);
+
+      // Try to load from cache first
+      const cacheKey = `github_data_${config.owner}_${config.repo}_${config.ref}`;
+      const cached = localStorage.getItem(cacheKey);
+      const cacheTime = localStorage.getItem(`${cacheKey}_time`);
+      const now = Date.now();
+      
+      // Use cache if it's less than 5 minutes old
+      if (cached && cacheTime && (now - parseInt(cacheTime)) < 5 * 60 * 1000) {
+        console.log('Using cached GitHub data');
+        return JSON.parse(cached);
+      }
+
+      const commitUrl = `https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/commits/${encodeURIComponent(config.ref)}`;
+      console.log('Fetching commit:', commitUrl);
+      
+      const commitRes = await fetch(commitUrl, { headers });
+      if (!commitRes.ok) {
+        const text = await commitRes.text();
+        console.error('GitHub commit request failed:', commitRes.status, text);
+        throw new Error(`GitHub commit request failed: ${commitRes.status} ${text}`);
+      }
+      const commitJson = await commitRes.json();
+      const sha = commitJson && commitJson.sha;
+      if (!sha) {
+        console.error('GitHub commit response missing sha:', commitJson);
+        throw new Error('GitHub commit response missing sha');
+      }
+      console.log('Got commit SHA:', sha);
+
+      const treeUrl = `https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/git/trees/${encodeURIComponent(sha)}?recursive=1`;
+      console.log('Fetching tree:', treeUrl);
+      
+      const treeRes = await fetch(treeUrl, { headers });
+      if (!treeRes.ok) {
+        const text = await treeRes.text();
+        console.error('GitHub tree request failed:', treeRes.status, text);
+        throw new Error(`GitHub tree request failed: ${treeRes.status} ${text}`);
+      }
+      const treeJson = await treeRes.json();
+      console.log('Got tree with', treeJson.tree ? treeJson.tree.length : 0, 'items');
+      
+      const directoryData = buildDirectoryDataFromGitHubTree(treeJson, config);
+      
+      // Cache the result
+      localStorage.setItem(cacheKey, JSON.stringify(directoryData));
+      localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
+      
+      return directoryData;
+    }
+
+    function buildDirectoryDataFromGitHubTree(treeJson, config) {
+      const output = {};
+      const tree = Array.isArray(treeJson && treeJson.tree) ? treeJson.tree : [];
+
+      console.log('Tree data:', treeJson);
+
+      function ensureFolder(parent, folderName) {
+        const key = folderName + '/';
+        if (!parent[key]) {
+          parent[key] = { type: 'folder', children: {} };
+        }
+        return parent[key].children;
+      }
+
+      for (const entry of tree) {
+        console.log('Processing entry:', entry);
+        if (!entry || entry.type !== 'blob' || typeof entry.path !== 'string') continue;
+        if (config.root && !entry.path.startsWith(config.root)) continue;
+
+        const relativePath = config.root ? entry.path.slice(config.root.length) : entry.path;
+        const parts = relativePath.split('/').filter(Boolean);
+        if (parts.length === 0) continue;
+
+        let current = output;
+        for (let i = 0; i < parts.length - 1; i++) {
+          current = ensureFolder(current, parts[i]);
+        }
+
+        const name = parts[parts.length - 1];
+        const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+        const rawUrl = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.ref}/${entry.path}`;
+
+        if (isImage) {
+          current[name] = {
+            type: 'image',
+            size: formatBytes(entry.size),
+            dimensions: '未知',
+            path: relativePath,
+            url: rawUrl,
+            original_name: '',
+            upload_time: ''
+          };
+        } else {
+          current[name] = {
+            type: 'file',
+            size: formatBytes(entry.size),
+            path: relativePath,
+            url: rawUrl,
+            original_name: '',
+            upload_time: ''
+          };
+        }
+      }
+
+      console.log('Final directory data:', output);
+      return output;
+    }
 
     // Load directory data
     async function loadDirectoryData() {
       try {
-        const response = await fetch('./directory-data.json');
-        if (!response.ok) {
-          throw new Error('Failed to load directory data');
+        githubConfig = getGithubConfigFromUrl();
+        const effectiveGithubConfig = githubConfig || getDefaultGithubConfig();
+        const shouldUseServerApi = !githubConfig || isDefaultRepo(effectiveGithubConfig);
+
+        if (shouldUseServerApi) {
+          try {
+            directoryData = await loadDirectoryDataFromServerApi(effectiveGithubConfig);
+          } catch (e) {
+            console.warn('Server API mode failed, falling back to direct GitHub API:', e);
+            directoryData = await loadDirectoryDataFromGitHub(effectiveGithubConfig);
+          }
+        } else {
+          directoryData = await loadDirectoryDataFromGitHub(effectiveGithubConfig);
         }
-        directoryData = await response.json();
+
         isLoading = false;
         renderDirectoryTree();
         setInitialSelection();
         renderImages();
       } catch (error) {
         console.error('Error loading directory data:', error);
-        directoryTree.innerHTML = '<div style="color: var(--muted); padding: 20px; text-align: center;">加载目录数据失败<br>请确保已运行目录扫描脚本</div>';
+        if (githubConfig) {
+          directoryTree.innerHTML = '<div style="color: var(--muted); padding: 20px; text-align: center;">加载 GitHub 数据失败<br>可能原因：服务端接口不可用 / GitHub Token 未配置 / 或 GitHub API 限流<br><small style="color: var(--muted);">如走服务端接口，请确保服务器环境变量已设置 GITHUB_TOKEN；或在 URL 追加 token 参数：?owner=...&repo=...&ref=...&token=YOUR_TOKEN</small></div>';
+        } else {
+          directoryTree.innerHTML = '<div style="color: var(--muted); padding: 20px; text-align: center;">加载目录数据失败<br>请确保已运行目录扫描脚本</div>';
+        }
         isLoading = false;
       }
     }
@@ -649,20 +1259,39 @@
 
     // Set initial folder selection after data loads
     function setInitialSelection() {
-      if (directoryData && directoryData['images/']) {
-        const imagesFolder = document.querySelector('[data-path="images/"]');
-        if (imagesFolder) {
-          imagesFolder.classList.add('selected');
-          // Set initial path and render images
-          currentPath = 'images/';
-          renderImages();
-          // Auto-expand the images folder
-          const children = imagesFolder.querySelector('.tree-children');
-          if (children) {
-            children.classList.add('expanded');
-            imagesFolder.classList.add('expanded');
-          }
-        }
+      if (!directoryData) return;
+
+      let initialPath = '';
+      if (directoryData['images/']) {
+        initialPath = 'images/';
+      } else {
+        const firstFolderKey = Object.keys(directoryData).find(k => k.endsWith('/') && directoryData[k] && directoryData[k].type === 'folder');
+        if (firstFolderKey) initialPath = firstFolderKey;
+      }
+
+      if (!initialPath) {
+        currentPath = '';
+        if (currentPathEl) currentPathEl.textContent = '当前路径: /';
+        renderImages();
+        return;
+      }
+
+      const initialFolder = document.querySelector(`[data-path="${initialPath}"]`);
+      if (!initialFolder) {
+        currentPath = initialPath;
+        if (currentPathEl) currentPathEl.textContent = `当前路径: ${currentPath}`;
+        renderImages();
+        return;
+      }
+
+      initialFolder.classList.add('selected');
+      currentPath = initialPath;
+      if (currentPathEl) currentPathEl.textContent = `当前路径: ${currentPath}`;
+      renderImages();
+      const children = initialFolder.querySelector('.tree-children');
+      if (children) {
+        children.classList.add('expanded');
+        initialFolder.classList.add('expanded');
       }
     }
 
@@ -674,14 +1303,122 @@
       // Export
       exportBtn.addEventListener('click', exportToCSV);
 
-      // Refresh
-      refreshBtn.addEventListener('click', () => {
-        loadDirectoryData();
+      // Refresh button
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          currentPage = 1; // Reset to first page when refreshing
+          renderImages();
+        });
+      }
+
+      // Page size change
+      if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', changePageSize);
+      }
+
+      // Tree search
+      if (treeSearchInput) {
+        treeSearchInput.addEventListener('input', () => {
+          renderDirectoryTree();
+        });
+      }
+
+      // Mobile sidebar
+      const mql = window.matchMedia('(max-width: 820px)');
+      const updateSidebarUi = () => {
+        if (sidebarToggleBtn) {
+          sidebarToggleBtn.style.display = mql.matches ? 'inline-flex' : 'none';
+        }
+        if (!mql.matches) {
+          sidebarEl && sidebarEl.classList.remove('open');
+          sidebarBackdrop && sidebarBackdrop.classList.remove('open');
+        }
+      };
+      updateSidebarUi();
+      if (typeof mql.addEventListener === 'function') {
+        mql.addEventListener('change', updateSidebarUi);
+      } else if (typeof mql.addListener === 'function') {
+        mql.addListener(updateSidebarUi);
+      }
+
+      if (sidebarToggleBtn) {
+        sidebarToggleBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          sidebarEl && sidebarEl.classList.toggle('open');
+          sidebarBackdrop && sidebarBackdrop.classList.toggle('open');
+        });
+      }
+
+      if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', () => {
+          sidebarEl && sidebarEl.classList.remove('open');
+          sidebarBackdrop.classList.remove('open');
+        });
+      }
+
+      // Add event listeners for sort controls
+    if (sortSelect && sortOrderSelect) {
+      const handleSortChange = () => {
+        currentPage = 1; // Reset to first page when sorting changes
+        renderImages();
+      };
+      sortSelect.addEventListener('change', handleSortChange);
+      sortOrderSelect.addEventListener('change', handleSortChange);
+    }
+
+    // Add event listener for file search
+    if (fileSearchInput) {
+      let searchTimeout;
+      fileSearchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          currentPage = 1; // Reset to first page when searching
+          renderImages();
+        }, 300);
+      });
+    }
+
+    // Modal
+      const closeModalBtn = document.getElementById('close-modal-btn');
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+          if (typeof currentModalCleanup === 'function') {
+            try { currentModalCleanup(); } catch (e) {}
+          }
+          currentModalCleanup = null;
+          currentModalUrl = '';
+          imageModal.classList.remove('active');
+        });
+      }
+      
+      copyLinkBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        copyImageLink();
       });
 
-      // Modal
-      closeModalBtn.addEventListener('click', () => imageModal.classList.remove('active'));
-      copyLinkBtn.addEventListener('click', copyImageLink);
+      if (openLinkBtn) {
+        openLinkBtn.addEventListener('click', () => {
+          const url = currentModalUrl || (modalImage && modalImage.src ? modalImage.src : '');
+          if (!url) return;
+          window.open(url, '_blank', 'noopener,noreferrer');
+        });
+      }
+
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+          const url = currentModalUrl || (modalImage && modalImage.src ? modalImage.src : '');
+          if (!url) return;
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = '';
+          a.rel = 'noopener noreferrer';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+      }
     }
 
     function renderDirectoryTree() {
@@ -696,7 +1433,34 @@
       }
 
       directoryTree.innerHTML = '';
-      renderTreeItem(directoryData, '', directoryTree, true);
+
+      const query = (treeSearchInput && treeSearchInput.value ? treeSearchInput.value.trim().toLowerCase() : '');
+      const filtered = filterFolderTreeData(directoryData, query);
+      renderTreeItem(filtered, '', directoryTree, true);
+    }
+
+    function filterFolderTreeData(data, query) {
+      if (!data || typeof data !== 'object') return {};
+      if (!query) {
+        return data;
+      }
+
+      const out = {};
+      for (const [name, item] of Object.entries(data)) {
+        if (!item || item.type !== 'folder' || !item.children) continue;
+        const folderName = String(name).replace('/', '').toLowerCase();
+        const childFiltered = filterFolderTreeData(item.children, query);
+        const hasChild = childFiltered && Object.keys(childFiltered).length > 0;
+        const selfMatch = folderName.includes(query);
+
+        if (selfMatch || hasChild) {
+          out[name] = {
+            type: 'folder',
+            children: childFiltered
+          };
+        }
+      }
+      return out;
     }
 
     function renderTreeItem(data, path, parent, isRoot = false, level = 0) {
@@ -710,39 +1474,68 @@
 
         if (item.type === 'folder') {
           itemElement.innerHTML = `
-            <div class="tree-expander ${hasChildren ? '' : 'no-children'}"></div>
-            <div class="tree-icon folder"></div>
-            <span>${name.replace('/', '')}</span>
+            <div class="tree-row">
+              <div class="tree-expander ${hasChildren ? '' : 'no-children'}"></div>
+              <div class="tree-icon folder"></div>
+              <span>${name.replace('/', '')}</span>
+            </div>
           `;
-          itemElement.addEventListener('click', (e) => {
-            e.stopPropagation();
-            selectFolder(itemElement, itemPath);
-          });
-        } else if (item.type === 'image') {
-          itemElement.innerHTML = `
-            <div class="tree-expander no-children"></div>
-            <div class="tree-icon image"></div>
-            <span>${name}</span>
-          `;
-          itemElement.addEventListener('click', () => selectImage(itemPath, item));
-        } else {
-          itemElement.innerHTML = `
-            <div class="tree-expander no-children"></div>
-            <div class="tree-icon file"></div>
-            <span>${name}</span>
-          `;
-        }
 
-        if (item.type === 'folder') {
+          const rowEl = itemElement.querySelector('.tree-row');
+          const expander = itemElement.querySelector('.tree-row .tree-expander');
           const childrenContainer = document.createElement('div');
           childrenContainer.className = 'tree-children';
+
           if (hasChildren) {
             renderTreeItem(item.children, itemPath + '/', childrenContainer, false, level + 1);
           }
           itemElement.appendChild(childrenContainer);
+
+          // Windows-like: click arrow to expand/collapse
+          if (expander) {
+            expander.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleFolderExpanded(itemElement);
+            });
+          }
+
+          // Click row selects and expands (does not collapse)
+          (rowEl || itemElement).addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectFolder(itemElement, itemPath);
+            ensureFolderExpanded(itemElement);
+            if (window.matchMedia && window.matchMedia('(max-width: 820px)').matches) {
+              sidebarEl && sidebarEl.classList.remove('open');
+              sidebarBackdrop && sidebarBackdrop.classList.remove('open');
+            }
+          });
+        } else {
+          continue;
         }
 
         parent.appendChild(itemElement);
+      }
+    }
+
+    function ensureFolderExpanded(element) {
+      const children = element.querySelector('.tree-children');
+      if (children && !children.classList.contains('expanded')) {
+        children.classList.add('expanded');
+        element.classList.add('expanded');
+      }
+    }
+
+    function toggleFolderExpanded(element) {
+      const children = element.querySelector('.tree-children');
+      if (!children) return;
+      const isExpanded = children.classList.contains('expanded');
+      if (isExpanded) {
+        children.classList.remove('expanded');
+        element.classList.remove('expanded');
+      } else {
+        children.classList.add('expanded');
+        element.classList.add('expanded');
       }
     }
 
@@ -754,28 +1547,29 @@
       element.classList.add('selected');
 
       // Set current path and render images
-      currentPath = path;
-      renderImages();
-
-      // Toggle expanded state
-      const children = element.querySelector('.tree-children');
-      const isExpanded = children.classList.contains('expanded');
-
-      if (isExpanded) {
-        children.classList.remove('expanded');
-        element.classList.remove('expanded');
-      } else {
-        children.classList.add('expanded');
-        element.classList.add('expanded');
+      currentPath = normalizePath(path);
+      if (currentPathEl) {
+        currentPathEl.textContent = currentPath ? `当前路径: ${currentPath}` : '当前路径: /';
       }
+      
+      // Reset sort to default when switching folders
+      sortSelect.value = 'name';
+      sortOrderSelect.value = 'asc';
+      
+      // Reset pagination when switching folders
+      currentPage = 1;
+      
+      renderImages();
     }
 
-    function selectImage(path, item) {
+    function selectImage(e, path, item) {
       // Remove previous selection
       document.querySelectorAll('.tree-item.selected').forEach(el => el.classList.remove('selected'));
 
       // Add selection to clicked item
-      event.currentTarget.classList.add('selected');
+      if (e && e.currentTarget) {
+        e.currentTarget.classList.add('selected');
+      }
 
       // Show image preview
       showImageModal(path, item);
@@ -798,23 +1592,77 @@
 
       const allFiles = Object.entries(folderData.children);
 
+      // Apply sorting
+      const sortBy = document.getElementById('sort-select').value;
+      const sortOrder = document.getElementById('sort-order').value;
+      const searchQuery = fileSearchInput ? fileSearchInput.value.trim().toLowerCase() : '';
+      
+      let filteredFiles = allFiles;
+      if (searchQuery) {
+        filteredFiles = allFiles.filter(([name, item]) => {
+          const fileName = name.toLowerCase();
+          const originalName = (item.original_name || '').toLowerCase();
+          return fileName.includes(searchQuery) || originalName.includes(searchQuery);
+        });
+      }
+      
+      const sortedFiles = [...filteredFiles].sort(([nameA, itemA], [nameB, itemB]) => {
+        let compareValue = 0;
+        if (sortBy === 'name') {
+          compareValue = nameA.localeCompare(nameB);
+        } else if (sortBy === 'original_name') {
+          const originalA = itemA.original_name || nameA;
+          const originalB = itemB.original_name || nameB;
+          compareValue = originalA.localeCompare(originalB);
+        } else if (sortBy === 'upload_time') {
+          const timeA = itemA.upload_time ? new Date(itemA.upload_time).getTime() : 0;
+          const timeB = itemB.upload_time ? new Date(itemB.upload_time).getTime() : 0;
+          compareValue = timeA - timeB;
+        } else if (sortBy === 'size') {
+          const sizeA = itemA.size || 0;
+          const sizeB = itemB.size || 0;
+          compareValue = sizeA - sizeB;
+        }
+        return sortOrder === 'desc' ? -compareValue : compareValue;
+      });
+
+      // Apply pagination
+      const totalPages = Math.ceil(sortedFiles.length / itemsPerPage);
+      if (currentPage > totalPages) currentPage = 1;
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedFiles = sortedFiles.slice(startIndex, endIndex);
+
+      // Only render current page items
+      renderImagesPage(paginatedFiles, totalPages);
+      
+      // Render pagination controls
+      renderPaginationControls(totalPages, sortedFiles.length);
+    }
+
+    function renderImagesPage(files, totalPages) {
       // Grid view
       gridView.innerHTML = '';
-      allFiles.forEach(([name, item]) => {
+      files.forEach(([name, item]) => {
         const itemElement = document.createElement('div');
         itemElement.className = 'grid-item';
 
         if (item.type === 'image') {
-          const imageUrl = `./${item.url}`;
+          const imageUrl = resolveItemUrl(item);
           const placeholderSvg = generateImagePlaceholder(name, 200, 150);
           itemElement.innerHTML = `
             <img class="grid-image" src="${imageUrl}" alt="${name}" onerror="this.src='${placeholderSvg}'">
             <div class="grid-info">
               <div class="grid-name">${name}</div>
-              <div class="grid-meta">${item.size} · ${item.dimensions}</div>
+              <div class="grid-meta">${item.size} · <span class="grid-dimensions">${item.dimensions}</span></div>
+              ${item.original_name ? `<div class="grid-original">原始: ${item.original_name}</div>` : ''}
+              ${item.upload_time ? `<div class="grid-time">${new Date(item.upload_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>` : ''}
             </div>
           `;
-          itemElement.addEventListener('click', () => showImageModal(currentPath + name, item));
+          const imgEl = itemElement.querySelector('img.grid-image');
+          const dimEl = itemElement.querySelector('.grid-dimensions');
+          applyImageDimensionsFromElement(imgEl, item, dimEl);
+          itemElement.addEventListener('click', () => showImageModal(joinPath(currentPath, name), item));
         } else {
           // 非图片文件显示文件图标
           const fileIcon = getFileIcon(name);
@@ -828,9 +1676,11 @@
               <div class="grid-meta">${item.size || '文件'}
                 ${canPreview ? '<br><small style="color: #007acc;">可预览</small>' : ''}
               </div>
+              ${item.original_name ? `<div class="grid-original">原始: ${item.original_name}</div>` : ''}
+              ${item.upload_time ? `<div class="grid-time">${new Date(item.upload_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>` : ''}
             </div>
           `;
-          itemElement.addEventListener('click', () => showFileInfo(currentPath + name, item));
+          itemElement.addEventListener('click', () => showFileInfo(joinPath(currentPath, name), item));
         }
 
         gridView.appendChild(itemElement);
@@ -838,33 +1688,42 @@
 
       // List view
       listView.innerHTML = '';
-      allFiles.forEach(([name, item]) => {
+      files.forEach(([name, item]) => {
         const itemElement = document.createElement('div');
         itemElement.className = 'image-item';
 
         if (item.type === 'image') {
-          const imageUrl = `./${item.url}`;
+          const imageUrl = resolveItemUrl(item);
           const placeholderSvg = generateImagePlaceholder(name, 60, 60);
+          const fullPath = joinPath(currentPath, name);
           itemElement.innerHTML = `
             <img class="image-thumb" src="${imageUrl}" alt="${name}" onerror="this.src='${placeholderSvg}'">
             <div class="image-info">
               <div class="image-name">${name}</div>
               <div class="image-meta">
                 <span>大小: ${item.size}</span>
-                <span>尺寸: ${item.dimensions}</span>
-                <span>路径: ${currentPath + name}</span>
+                <span>尺寸: <span class="list-dimensions">${item.dimensions}</span></span>
+                <span>路径: ${fullPath}</span>
+                ${item.original_name ? `<span>原始名: ${item.original_name}</span>` : ''}
+                ${item.upload_time ? `<span>上传时间: ${new Date(item.upload_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>` : ''}
               </div>
             </div>
             <div class="image-actions">
-              <button class="btn" onclick="copyImageLink('${currentPath + name}')">📋 复制链接</button>
+              <button class="btn" onclick="copyImageLink('${fullPath}')">📋 复制</button>
+              <button class="btn" onclick="openFileLink('${fullPath}')">🔗 打开</button>
+              <button class="btn" onclick="downloadFile('${fullPath}', '${name}')">📥 下载</button>
             </div>
           `;
-          itemElement.addEventListener('click', () => showImageModal(currentPath + name, item));
+          const imgEl = itemElement.querySelector('img.image-thumb');
+          const dimEl = itemElement.querySelector('.list-dimensions');
+          applyImageDimensionsFromElement(imgEl, item, dimEl);
+          itemElement.addEventListener('click', () => showImageModal(fullPath, item));
         } else {
           // 非图片文件显示文件图标
           const fileIcon = getFileIcon(name);
           const fileExt = name.split('.').pop().toLowerCase();
           const canPreview = ['txt', 'md', 'json', 'js', 'css', 'html', 'xml'].includes(fileExt);
+          const fullPath = joinPath(currentPath, name);
 
           itemElement.innerHTML = `
             <div class="file-thumb">${fileIcon}</div>
@@ -873,19 +1732,171 @@
               <div class="image-meta">
                 <span>大小: ${item.size || '未知'}</span>
                 <span>类型: ${getFileType(name)}</span>
-                <span>路径: ${currentPath + name}</span>
+                <span>路径: ${fullPath}</span>
+                ${item.original_name ? `<span>原始名: ${item.original_name}</span>` : ''}
+                ${item.upload_time ? `<span>上传时间: ${new Date(item.upload_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>` : ''}
               </div>
             </div>
             <div class="image-actions">
-              ${canPreview ? `<button class="btn" onclick="showFileContent('${currentPath + name}', ${JSON.stringify(item).replace(/"/g, '&quot;')})">👁️ 查看内容</button>` : ''}
-              <button class="btn" onclick="copyFileLink('${currentPath + name}')">📋 复制链接</button>
+              ${canPreview ? `<button class="btn" onclick="showFileContent('${fullPath}', ${JSON.stringify(item).replace(/"/g, '&quot;')})">👁️ 查看内容</button>` : ''}
+              <button class="btn" onclick="copyFileLink('${fullPath}')">📋 复制</button>
+              <button class="btn" onclick="openFileLink('${fullPath}')">🔗 打开</button>
+              <button class="btn" onclick="downloadFile('${fullPath}', '${name}')">📥 下载</button>
             </div>
           `;
-          itemElement.addEventListener('click', () => showFileInfo(currentPath + name, item));
+          itemElement.addEventListener('click', () => showFileInfo(fullPath, item));
         }
 
         listView.appendChild(itemElement);
       });
+
+      // Render pagination controls
+      renderPaginationControls(totalPages, files.length);
+    }
+
+    function renderPaginationControls(totalPages, totalItems) {
+      const paginationContainer = document.getElementById('pagination-container');
+      if (!paginationContainer) return;
+
+      if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+      }
+
+      let paginationHtml = '<div style="text-align: center; padding: 16px; display: flex; flex-direction: column; gap: 12px;">';
+      
+      // First row: Navigation buttons and page numbers
+      paginationHtml += '<div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">';
+      
+      // Previous button
+      paginationHtml += `<button class="btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+      
+      // Page numbers
+      const maxVisiblePages = 7;
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+      
+      if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      if (startPage > 1) {
+        paginationHtml += `<button class="btn" onclick="changePage(1)">1</button>`;
+        if (startPage > 2) {
+          paginationHtml += '<span style="color: var(--muted);">...</span>';
+        }
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        const isActive = i === currentPage;
+        paginationHtml += `<button class="btn ${isActive ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+      }
+      
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          paginationHtml += '<span style="color: var(--muted);">...</span>';
+        }
+        paginationHtml += `<button class="btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+      }
+      
+      // Next button
+      paginationHtml += `<button class="btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+      
+      paginationHtml += '</div>';
+      
+      // Second row: Page info and controls
+      paginationHtml += '<div style="display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">';
+      
+      // Page info
+      const startItem = (currentPage - 1) * itemsPerPage + 1;
+      const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+      paginationHtml += `<span style="color: var(--muted);">显示 ${startItem}-${endItem} / 共 ${totalItems} 项</span>`;
+      
+      // Jump to page input
+      paginationHtml += '<div style="display: flex; align-items: center; gap: 4px;">';
+      paginationHtml += '<span style="color: var(--muted);">跳转到</span>';
+      paginationHtml += `<input type="number" id="jump-page-input" min="1" max="${totalPages}" value="${currentPage}" style="width: 60px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--card); color: var(--text); text-align: center;">`;
+      paginationHtml += '<span style="color: var(--muted);">页</span>';
+      paginationHtml += '<button class="btn" onclick="jumpToPage()">跳转</button>';
+      paginationHtml += '</div>';
+      
+      // Page size selector
+      paginationHtml += '<select id="page-size-select" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--card); color: var(--text);" onchange="changePageSize()">';
+      paginationHtml += '<option value="20">20条/页</option>';
+      paginationHtml += '<option value="50" selected>50条/页</option>';
+      paginationHtml += '<option value="100">100条/页</option>';
+      paginationHtml += '<option value="200">200条/页</option>';
+      paginationHtml += '</select>';
+      
+      paginationHtml += '</div>';
+      paginationHtml += '</div>';
+      paginationContainer.innerHTML = paginationHtml;
+    }
+
+    function changePage(page) {
+      if (page < 1) return;
+      const folderData = getFolderData(currentPath);
+      if (!folderData || folderData.type !== 'folder') return;
+      
+      const allFiles = Object.entries(folderData.children);
+      const searchQuery = fileSearchInput ? fileSearchInput.value.trim().toLowerCase() : '';
+      let filteredFiles = allFiles;
+      if (searchQuery) {
+        filteredFiles = allFiles.filter(([name, item]) => {
+          const fileName = name.toLowerCase();
+          const originalName = (item.original_name || '').toLowerCase();
+          return fileName.includes(searchQuery) || originalName.includes(searchQuery);
+        });
+      }
+      
+      const totalPages = Math.ceil(filteredFiles.length / itemsPerPage);
+      if (page > totalPages) return;
+      
+      currentPage = page;
+      renderImages();
+    }
+
+    function jumpToPage() {
+      const jumpInput = document.getElementById('jump-page-input');
+      if (!jumpInput) return;
+      
+      const targetPage = parseInt(jumpInput.value);
+      if (isNaN(targetPage) || targetPage < 1) return;
+      
+      const folderData = getFolderData(currentPath);
+      if (!folderData || folderData.type !== 'folder') return;
+      
+      const allFiles = Object.entries(folderData.children);
+      const searchQuery = fileSearchInput ? fileSearchInput.value.trim().toLowerCase() : '';
+      let filteredFiles = allFiles;
+      if (searchQuery) {
+        filteredFiles = allFiles.filter(([name, item]) => {
+          const fileName = name.toLowerCase();
+          const originalName = (item.original_name || '').toLowerCase();
+          return fileName.includes(searchQuery) || originalName.includes(searchQuery);
+        });
+      }
+      
+      const totalPages = Math.ceil(filteredFiles.length / itemsPerPage);
+      const validPage = Math.min(Math.max(1, targetPage), totalPages);
+      
+      if (validPage !== targetPage) {
+        jumpInput.value = validPage;
+      }
+      
+      currentPage = validPage;
+      renderImages();
+    }
+
+    function changePageSize() {
+      if (!pageSizeSelect) return;
+      
+      const newPageSize = parseInt(pageSizeSelect.value);
+      if (isNaN(newPageSize) || newPageSize < 1) return;
+      
+      itemsPerPage = newPageSize;
+      currentPage = 1; // Reset to first page when changing page size
+      renderImages();
     }
 
     function getFileIcon(filename) {
@@ -938,6 +1949,8 @@
       const filename = path.split('/').pop();
       const fileType = getFileType(filename);
       const fileIcon = getFileIcon(filename);
+      const url = resolveItemUrl(item);
+      currentModalUrl = url;
 
       const modal = document.getElementById('image-modal');
       const modalImage = document.getElementById('modal-image');
@@ -948,10 +1961,15 @@
       const fileExt = filename.split('.').pop().toLowerCase();
       const canPreview = previewableTypes.includes(fileExt);
 
+      if (fileExt === 'pdf') {
+        showPdfModal(filename, fileType, url, path, item);
+        return;
+      }
+
       if (canPreview) {
         try {
           // 尝试加载文件内容
-          const response = await fetch(`./${item.url}`);
+          const response = await fetch(resolveItemUrl(item));
           if (response.ok) {
             const content = await response.text();
             showFileContentModal(filename, fileType, content, path, item);
@@ -963,7 +1981,7 @@
       }
 
       // 显示文件信息模态框
-      modalImage.src = 'data:image/svg+xml;base64,' + btoa(`
+      const svgContent = `
         <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="300" fill="#f0f0f0"/>
           <text x="200" y="120" text-anchor="middle" font-size="48">${fileIcon}</text>
@@ -971,23 +1989,71 @@
           <text x="200" y="200" text-anchor="middle" font-size="12" fill="#999">${filename}</text>
           ${canPreview ? '<text x="200" y="240" text-anchor="middle" font-size="12" fill="#007acc">点击查看内容</text>' : ''}
         </svg>
-      `);
+      `;
+      modalImage.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgContent)));
 
       modalInfo.innerHTML = `
         <strong>${filename}</strong><br>
         类型: ${fileType}<br>
         大小: ${item.size || '未知'}<br>
-        路径: ${path}
+        路径: ${path}<br>
+        <a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #007acc;">打开文件</a>
         ${canPreview ? '<br><small style="color: #007acc;">此文件支持内容预览</small>' : ''}
       `;
 
       modal.classList.add('active');
     }
 
+    function showPdfModal(filename, fileType, url, path, item) {
+      const modal = document.getElementById('image-modal');
+      const modalImage = document.getElementById('modal-image');
+      const modalInfo = document.getElementById('modal-info');
+
+      modalImage.style.display = 'none';
+      currentModalUrl = url;
+
+      const iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.cssText = `
+        width: 100%;
+        height: 500px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        background: #fff;
+      `;
+
+      const modalContent = modal.querySelector('.modal-content');
+      modalContent.insertBefore(iframe, modalInfo);
+
+      modalInfo.innerHTML = `
+        <strong>${filename}</strong><br>
+        类型: ${fileType}<br>
+        大小: ${item.size || '未知'}<br>
+        路径: ${path}<br>
+        <a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #007acc;">新窗口打开</a>
+        <br><small style="color: #007acc;">如无法内嵌预览，请使用“新窗口打开”</small>
+      `;
+
+      modal.classList.add('active');
+
+      currentModalCleanup = () => {
+        if (iframe && iframe.parentNode === modalContent) {
+          modalContent.removeChild(iframe);
+        }
+        modalImage.style.display = 'block';
+      };
+    }
+
     function showFileContentModal(filename, fileType, content, path, item) {
       const modal = document.getElementById('image-modal');
       const modalImage = document.getElementById('modal-image');
       const modalInfo = document.getElementById('modal-info');
+
+      // 清理之前的预览内容
+      if (currentModalCleanup) {
+        currentModalCleanup();
+        currentModalCleanup = null;
+      }
 
       // 创建文件内容预览
       const maxLength = 5000; // 限制预览长度
@@ -999,10 +2065,10 @@
       let languageClass = '';
       switch (fileExt) {
         case 'js': languageClass = 'language-javascript'; break;
-        case 'json': languageClass = 'language-json'; break;
         case 'css': languageClass = 'language-css'; break;
         case 'html': languageClass = 'language-html'; break;
         case 'xml': languageClass = 'language-xml'; break;
+        case 'json': languageClass = 'language-json'; break;
         case 'md': languageClass = 'language-markdown'; break;
         default: languageClass = 'language-plaintext';
       }
@@ -1029,6 +2095,10 @@
 
       // 替换模态框内容
       const modalContent = modal.querySelector('.modal-content');
+      // 确保 modalInfo 是 modalContent 的子节点，如果不是，重新插入
+      if (!modalContent.contains(modalInfo)) {
+        modalContent.appendChild(modalInfo);
+      }
       modalContent.insertBefore(contentContainer, modalInfo);
 
       modalInfo.innerHTML = `
@@ -1041,15 +2111,12 @@
 
       modal.classList.add('active');
 
-      // 清理函数
-      const closeHandler = () => {
-        modalContent.removeChild(contentContainer);
+      currentModalCleanup = () => {
+        if (contentContainer && contentContainer.parentNode === modalContent) {
+          modalContent.removeChild(contentContainer);
+        }
         modalImage.style.display = 'block';
-        modal.removeEventListener('click', closeHandler);
       };
-
-      // 点击关闭按钮时清理
-      document.getElementById('close-modal-btn').addEventListener('click', closeHandler, { once: true });
     }
 
     function getFolderData(path) {
@@ -1089,20 +2156,133 @@
     }
 
     function showImageModal(path, item) {
-      const imageUrl = `./${item.url}`;
+      const imageUrl = resolveItemUrl(item);
       const filename = path.split('/').pop();
       const placeholderSvg = generateImagePlaceholder(filename, 800, 600);
+
+      currentModalUrl = imageUrl;
+      currentModalCleanup = null;
 
       modalImage.src = imageUrl;
       modalImage.onerror = function() {
         this.src = placeholderSvg;
       };
+      
+      // Add navigation info
+      const allFiles = Object.entries(getFolderData(currentPath).children);
+      const searchQuery = fileSearchInput ? fileSearchInput.value.trim().toLowerCase() : '';
+      let filteredFiles = allFiles;
+      if (searchQuery) {
+        filteredFiles = allFiles.filter(([name, item]) => {
+          const fileName = name.toLowerCase();
+          const originalName = (item.original_name || '').toLowerCase();
+          return fileName.includes(searchQuery) || originalName.includes(searchQuery);
+        });
+      }
+      
+      const sortBy = sortSelect ? sortSelect.value : 'name';
+      const sortOrder = sortOrderSelect ? sortOrderSelect.value : 'asc';
+      const sortedFiles = [...filteredFiles].sort(([nameA, itemA], [nameB, itemB]) => {
+        let compareValue = 0;
+        if (sortBy === 'name') {
+          compareValue = nameA.localeCompare(nameB);
+        } else if (sortBy === 'original_name') {
+          const originalA = itemA.original_name || nameA;
+          const originalB = itemB.original_name || nameB;
+          compareValue = originalA.localeCompare(originalB);
+        } else if (sortBy === 'upload_time') {
+          const timeA = itemA.upload_time ? new Date(itemA.upload_time).getTime() : 0;
+          const timeB = itemB.upload_time ? new Date(itemB.upload_time).getTime() : 0;
+          compareValue = timeA - timeB;
+        } else if (sortBy === 'size') {
+          const sizeA = itemA.size || 0;
+          const sizeB = itemB.size || 0;
+          compareValue = sizeA - sizeB;
+        }
+        return sortOrder === 'desc' ? -compareValue : compareValue;
+      });
+      
+      const currentIndex = sortedFiles.findIndex(([name]) => name === name);
+      const totalPages = Math.ceil(sortedFiles.length / itemsPerPage);
+      const currentPage = Math.floor(currentIndex / itemsPerPage) + 1;
+      
       modalInfo.innerHTML = `
-        <strong>${filename}</strong> |
-        大小: ${item.size} |
-        尺寸: ${item.dimensions}
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+          <div>
+            <strong>${filename}</strong><br>
+            大小: ${item.size}<br>
+            尺寸: ${item.dimensions}<br>
+            ${item.original_name ? `原始名: ${item.original_name}<br>` : ''}
+            ${item.upload_time ? `上传时间: ${new Date(item.upload_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>` : ''}
+          </div>
+          <button class="btn" style="min-width: auto; padding: 4px 8px; font-size: 12px;" onclick="closeModal()">✕</button>
+        </div>
+        ${totalPages > 1 ? `
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px;">
+          <button class="btn" onclick="navigateModal(-1)" ${currentPage === 1 ? 'disabled' : ''}>上一张</button>
+          <span style="color: var(--muted); font-size: 14px;">${currentIndex + 1} / ${sortedFiles.length}</span>
+          <button class="btn" onclick="navigateModal(1)" ${currentPage === totalPages ? 'disabled' : ''}>下一张</button>
+        </div>
+        ` : ''}
       `;
       imageModal.classList.add('active');
+    }
+
+    function navigateModal(direction) {
+      const allFiles = Object.entries(getFolderData(currentPath).children);
+      const searchQuery = fileSearchInput ? fileSearchInput.value.trim().toLowerCase() : '';
+      let filteredFiles = allFiles;
+      if (searchQuery) {
+        filteredFiles = allFiles.filter(([name, item]) => {
+          const fileName = name.toLowerCase();
+          const originalName = (item.original_name || '').toLowerCase();
+          return fileName.includes(searchQuery) || originalName.includes(searchQuery);
+        });
+      }
+      
+      const sortBy = sortSelect ? sortSelect.value : 'name';
+      const sortOrder = sortOrderSelect ? sortOrderSelect.value : 'asc';
+      const sortedFiles = [...filteredFiles].sort(([nameA, itemA], [nameB, itemB]) => {
+        let compareValue = 0;
+        if (sortBy === 'name') {
+          compareValue = nameA.localeCompare(nameB);
+        } else if (sortBy === 'original_name') {
+          const originalA = itemA.original_name || nameA;
+          const originalB = itemB.original_name || nameB;
+          compareValue = originalA.localeCompare(originalB);
+        } else if (sortBy === 'upload_time') {
+          const timeA = itemA.upload_time ? new Date(itemA.upload_time).getTime() : 0;
+          const timeB = itemB.upload_time ? new Date(itemB.upload_time).getTime() : 0;
+          compareValue = timeA - timeB;
+        } else if (sortBy === 'size') {
+          const sizeA = itemA.size || 0;
+          const sizeB = itemB.size || 0;
+          compareValue = sizeA - sizeB;
+        }
+        return sortOrder === 'desc' ? -compareValue : compareValue;
+      });
+      
+      const currentFilename = currentModalUrl ? currentModalUrl.split('/').pop() : '';
+      const currentIndex = sortedFiles.findIndex(([name, item]) => {
+        const itemUrl = resolveItemUrl(item);
+        return itemUrl === currentModalUrl;
+      });
+      
+      const newIndex = currentIndex + direction;
+      if (newIndex >= 0 && newIndex < sortedFiles.length) {
+        const [newName, newItem] = sortedFiles[newIndex];
+        const newPath = joinPath(currentPath, newName);
+        showImageModal(newPath, newItem);
+      }
+    }
+
+    function closeModal() {
+      if (typeof currentModalCleanup === 'function') {
+        try { currentModalCleanup(); } catch (e) {}
+      }
+      currentModalCleanup = null;
+      currentModalUrl = '';
+      imageModal.classList.remove('active');
     }
 
     function copyImageLink(path) {
@@ -1110,6 +2290,11 @@
     }
 
     function copyFileLink(path) {
+      // When used as an event handler, `path` can be an Event object.
+      if (path && typeof path === 'object' && typeof path.preventDefault === 'function') {
+        path = '';
+      }
+
       let linkToCopy = '';
 
       if (path) {
@@ -1119,6 +2304,12 @@
         let item = null;
 
         for (const part of parts) {
+          const folderKey = part + '/';
+          if (current && current[folderKey] && current[folderKey].type === 'folder') {
+            current = current[folderKey].children;
+            continue;
+          }
+
           if (current && current[part]) {
             if (current[part].type === 'folder') {
               current = current[part].children;
@@ -1129,12 +2320,16 @@
         }
 
         if (item && item.url) {
-          linkToCopy = window.location.origin + window.location.pathname.replace('index.html', '') + item.url;
+          if (isAbsoluteUrl(item.url)) {
+            linkToCopy = item.url;
+          } else {
+            linkToCopy = window.location.origin + window.location.pathname.replace('index.html', '') + item.url;
+          }
         } else {
           linkToCopy = window.location.origin + window.location.pathname.replace('index.html', '') + path;
         }
       } else {
-        linkToCopy = modalImage.src;
+        linkToCopy = currentModalUrl || modalImage.src;
       }
 
       navigator.clipboard.writeText(linkToCopy).then(() => {
@@ -1150,7 +2345,7 @@
       const fileType = getFileType(filename);
 
       try {
-        const response = await fetch(`./${item.url}`);
+        const response = await fetch(resolveItemUrl(item));
         if (response.ok) {
           const content = await response.text();
           showFileContentModal(filename, fileType, content, path, item);
@@ -1169,11 +2364,15 @@
 
       const allFiles = Object.entries(folderData.children);
 
-      let csvContent = "名称,路径,类型,大小,尺寸/格式\n";
+      let csvContent = "文件名,原始文件名,路径,类型,大小,尺寸/格式,上传时间,URL\n";
       allFiles.forEach(([name, item]) => {
         const fileType = item.type === 'image' ? '图片' : getFileType(name);
         const sizeOrFormat = item.type === 'image' ? item.dimensions : item.size;
-        csvContent += `"${name}","${currentPath + name}","${fileType}","${item.size}","${sizeOrFormat}"\n`;
+        const fullPath = joinPath(currentPath, name);
+        const url = resolveItemUrl(item);
+        const originalName = item.original_name || name;
+        const uploadTime = item.upload_time ? new Date(item.upload_time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+        csvContent += `"${name}","${originalName}","${fullPath}","${fileType}","${item.size}","${sizeOrFormat}","${uploadTime}","${url}"\n`;
       });
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1185,6 +2384,46 @@
       link.download = `${folderName}_files.csv`;
       link.click();
     }
+
+    function openFileLink(path) {
+      const item = getFileItem(path);
+      if (!item) return;
+      const url = resolveItemUrl(item);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function downloadFile(path, filename) {
+      const item = getFileItem(path);
+      if (!item) return;
+      const url = resolveItemUrl(item);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function getFileItem(path) {
+      const parts = path.split('/').filter(Boolean);
+      let current = directoryData;
+      
+      for (const part of parts) {
+        if (!current || !current.children) return null;
+        const folderKey = part + '/';
+        if (current.children[folderKey]) {
+          current = current.children[folderKey];
+        } else if (current.children[part]) {
+          current = current.children[part];
+        } else {
+          return null;
+        }
+      }
+      
+      return current;
+    }
   </script>
+
 </body>
 </html>
